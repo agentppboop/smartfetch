@@ -1,3 +1,6 @@
+const { GoogleSpreadsheet } = require('google-spreadsheet');
+const syncToSheet = require('./syncToSheet');
+
 // 📦 Load environment variables
 require('dotenv').config();
 
@@ -107,6 +110,7 @@ async function fetchVideoDetails(videoId) {
     // 💾 Save to results.json (append mode)
     appendToResults(videoData);
     exportToCSV(videoData);
+    syncToSheet(videoData);
 
   } catch (err) {
     const errorMsg = `❌ Failed for video ID ${videoId}: ${err.message}\n`;
@@ -255,4 +259,9 @@ async function runAll() {
 
 }
 
+// 🔁 Schedule periodic scans
+setInterval(runAll, INTERVAL_MS);
+
+// ▶️ Initial run
 runAll();
+
