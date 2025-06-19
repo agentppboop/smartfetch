@@ -1,3 +1,7 @@
+// 🔁 Add this line near other constants
+const INTERVAL_MS = 6 * 60 * 60 * 1000; // every 6 hours
+
+
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const syncToSheet = require('./syncToSheet');
 
