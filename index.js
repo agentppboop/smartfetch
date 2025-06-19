@@ -4,17 +4,62 @@ require('dotenv').config();
 // 🔗 Import libraries
 const axios = require('axios');
 const fs = require('fs');
+const path = require('path');
+const { parse } = require('json2csv');
 
 // 🔑 Your YouTube API key from .env
 const API_KEY = process.env.YOUTUBE_API_KEY;
 
-// 📺 List of video IDs to scan
-const VIDEO_IDS = [
-  'z51M9cit-X0',
-  'dCoELp77I9o',
-  'SotKhV-kjfI',
-  'q83Jw-TKHdw'
+// 📺 List of YouTube links and playlist IDs
+const VIDEO_LINKS = [
+//   'https://www.youtube.com/watch?v=z51M9cit-X0',
+//   'https://youtu.be/dCoELp77I9o',
+//   'https://youtube.com/shorts/SotKhV-kjfI',
+//   'https://www.youtube.com/watch?v=q83Jw-TKHdw'
 ];
+
+const PLAYLIST_IDS = [
+  'https://www.youtube.com/playlist?list=PLVD3APpfd1ts0x9qpHagm5Nyd2GKxwrly'
+];
+
+// 🔎 Extract video ID from various YouTube URL formats
+function extractVideoIdFromUrl(url) {
+  try {
+    const short = url.match(/youtu\.be\/([^\?\&]+)/);
+    if (short) return short[1];
+
+    const long = url.match(/[?&]v=([^&]+)/);
+    if (long) return long[1];
+
+    const shorts = url.match(/shorts\/([^\?\&]+)/);
+    if (shorts) return shorts[1];
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// 📥 Fetch all video IDs from a playlist
+async function fetchVideoIdsFromPlaylist(playlistId) {
+  const videoIds = [];
+  let nextPageToken = '';
+
+  try {
+    do {
+      const res = await axios.get(
+        `https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&maxResults=50&playlistId=${playlistId}&pageToken=${nextPageToken}&key=${API_KEY}`
+      );
+      const items = res.data.items || [];
+      items.forEach(item => videoIds.push(item.contentDetails.videoId));
+      nextPageToken = res.data.nextPageToken || '';
+    } while (nextPageToken);
+  } catch (err) {
+    console.error(`❌ Failed to fetch playlist ${playlistId}: ${err.message}`);
+  }
+
+  return videoIds;
+}
 
 // 🧠 Main function to fetch and process video data
 async function fetchVideoDetails(videoId) {
@@ -33,54 +78,68 @@ async function fetchVideoDetails(videoId) {
     console.log(`🎬 Title: ${title}`);
     console.log(`📝 Description:\n${description}`);
 
-    const foundCodes = extractCodes(description);
+    const codesByType = extractCodes(description);
+    const flatCodes = Object.values(codesByType).flat();
 
     const videoData = {
       videoTitle: title,
       videoId: videoId,
-      codes: foundCodes,
+      ...codesByType,
       timestamp: new Date().toISOString()
     };
 
     console.log("📦 JSON Data Object:");
     console.log(videoData);
 
-    if (foundCodes.length === 0) {
+    if (flatCodes.length === 0) {
       console.log("❌ No codes found.");
     } else {
       console.log("✅ Found codes:");
-      foundCodes.forEach(code => console.log(`🔗 ${code}`));
+      flatCodes.forEach(code => console.log(`🔗 ${code}`));
     }
 
     // 💾 Save to results.json (append mode)
     appendToResults(videoData);
+    exportToCSV(videoData);
 
   } catch (err) {
-    console.error("❌ Error fetching video data:", err.message);
+    const errorMsg = `❌ Failed for video ID ${videoId}: ${err.message}\n`;
+    console.error(errorMsg);
+    fs.appendFileSync('errors.log', errorMsg);
   }
 }
 
-// 🔍 Extract codes using regex patterns
+// 🔍 Extract codes by type using regex patterns
 function extractCodes(text) {
-  const codePatterns = [
-    /https?:\/\/[^\s]+/g,                  // Links (bit.ly, etc.)
-    /\b[A-Z0-9]{5,}\b/g,                   // Long codes like PROMO123
-    /use code[:\- ]?([A-Z0-9]+)/gi,        // "Use code: XYZ10"
-    /coupon[:\- ]?([A-Z0-9]+)/gi,
-    /ref[:\- ]?([A-Z0-9]+)/gi,
-    /promo[:\- =]?([A-Z0-9]+)/gi
-  ];
+  const patterns = {
+    links: /https?:\/\/[^\s]+/g,
+    alphanum: /\b[A-Z0-9]{5,}\b/g,
+    useCode: /use code[:\- ]?([A-Z0-9]+)/gi,
+    coupon: /coupon[:\- ]?([A-Z0-9]+)/gi,
+    ref: /ref[:\- ]?([A-Z0-9]+)/gi,
+    promo: /promo[:\- =]?([A-Z0-9]+)/gi
+  };
 
-  const matches = new Set();
+  const results = {
+    links: new Set(),
+    codes: new Set()
+  };
 
-  for (const pattern of codePatterns) {
-    const found = text.match(pattern);
-    if (found) {
-      found.forEach(code => matches.add(code.trim()));
+  for (const [key, pattern] of Object.entries(patterns)) {
+    const matches = text.matchAll(pattern);
+    for (const match of matches) {
+      const value = match[1] || match[0];
+      if (!['PROMO CODE', 'PROMO CODES', 'COUPON CODE', 'DISCLAIMER'].includes(value.toUpperCase())) {
+        if (key === 'links') results.links.add(value.trim());
+        else results.codes.add(value.trim());
+      }
     }
   }
 
-  return [...matches];
+  return {
+    links: Array.from(results.links),
+    codes: Array.from(results.codes)
+  };
 }
 
 // 💽 Append results to results.json
@@ -97,13 +156,51 @@ function appendToResults(videoData) {
     console.warn("⚠️ Could not read existing results. Starting fresh.");
   }
 
+  const alreadyExists = current.some(entry => entry.videoId === videoData.videoId);
+  if (alreadyExists) {
+    console.log("⏩ Skipping duplicate video entry.");
+    return;
+  }
+
   current.push(videoData);
   fs.writeFileSync(filePath, JSON.stringify(current, null, 2));
 }
 
-// 🚀 Run the extraction for each video
+// 🧾 Export data to CSV
+function exportToCSV(videoData) {
+  const csvPath = 'results.csv';
+  const fields = ['videoId', 'videoTitle', 'timestamp', 'links', 'codes'];
+  const opts = { fields, header: !fs.existsSync(csvPath) };
+  const row = {
+    ...videoData,
+    links: videoData.links.join(' | '),
+    codes: videoData.codes.join(' | ')
+  };
+
+  try {
+    const csv = parse([row], opts) + '\n';
+    fs.appendFileSync(csvPath, csv);
+  } catch (err) {
+    console.error("❌ CSV Export Error:", err.message);
+  }
+}
+
+// 🚀 Run the extraction from both links and playlists
 async function runAll() {
-  for (const id of VIDEO_IDS) {
+  const videoIds = new Set();
+
+  for (const url of VIDEO_LINKS) {
+    const videoId = extractVideoIdFromUrl(url);
+    if (videoId) videoIds.add(videoId);
+    else console.warn(`⚠️ Could not extract video ID from URL: ${url}`);
+  }
+
+  for (const playlistId of PLAYLIST_IDS) {
+    const idsFromPlaylist = await fetchVideoIdsFromPlaylist(playlistId);
+    idsFromPlaylist.forEach(id => videoIds.add(id));
+  }
+
+  for (const id of videoIds) {
     console.log(`\n🎯 Checking video ID: ${id}`);
     await fetchVideoDetails(id);
   }
