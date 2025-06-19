@@ -1,25 +1,30 @@
-// Load environment variables from .env file
+// 📦 Load environment variables
 require('dotenv').config();
 
-// Import axios for API requests
+// 🔗 Import libraries
 const axios = require('axios');
+const fs = require('fs');
 
-// Your YouTube API key from .env
+// 🔑 Your YouTube API key from .env
 const API_KEY = process.env.YOUTUBE_API_KEY;
 
-// Replace this with any real YouTube video ID
-const VIDEO_ID = 'XvBGkq0U3GU'; // Example: Rick Astley :)
+// 📺 List of video IDs to scan
+const VIDEO_IDS = [
+  'z51M9cit-X0',
+  'dCoELp77I9o',
+  'SotKhV-kjfI',
+  'q83Jw-TKHdw'
+];
 
-// Function to fetch video data
+// 🧠 Main function to fetch and process video data
 async function fetchVideoDetails(videoId) {
   try {
     const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${API_KEY}`;
-    
     const response = await axios.get(url);
     const video = response.data.items[0];
 
     if (!video) {
-      console.log("Video not found or invalid ID.");
+      console.log("❌ Video not found or invalid ID.");
       return;
     }
 
@@ -28,7 +33,17 @@ async function fetchVideoDetails(videoId) {
     console.log(`🎬 Title: ${title}`);
     console.log(`📝 Description:\n${description}`);
 
-     const foundCodes = extractCodes(description);
+    const foundCodes = extractCodes(description);
+
+    const videoData = {
+      videoTitle: title,
+      videoId: videoId,
+      codes: foundCodes,
+      timestamp: new Date().toISOString()
+    };
+
+    console.log("📦 JSON Data Object:");
+    console.log(videoData);
 
     if (foundCodes.length === 0) {
       console.log("❌ No codes found.");
@@ -36,11 +51,16 @@ async function fetchVideoDetails(videoId) {
       console.log("✅ Found codes:");
       foundCodes.forEach(code => console.log(`🔗 ${code}`));
     }
+
+    // 💾 Save to results.json (append mode)
+    appendToResults(videoData);
+
   } catch (err) {
     console.error("❌ Error fetching video data:", err.message);
   }
 }
 
+// 🔍 Extract codes using regex patterns
 function extractCodes(text) {
   const codePatterns = [
     /https?:\/\/[^\s]+/g,                  // Links (bit.ly, etc.)
@@ -63,6 +83,30 @@ function extractCodes(text) {
   return [...matches];
 }
 
+// 💽 Append results to results.json
+function appendToResults(videoData) {
+  const filePath = 'results.json';
+  let current = [];
 
-// Run the function
-fetchVideoDetails(VIDEO_ID);
+  try {
+    if (fs.existsSync(filePath)) {
+      const file = fs.readFileSync(filePath, 'utf-8');
+      current = JSON.parse(file);
+    }
+  } catch (err) {
+    console.warn("⚠️ Could not read existing results. Starting fresh.");
+  }
+
+  current.push(videoData);
+  fs.writeFileSync(filePath, JSON.stringify(current, null, 2));
+}
+
+// 🚀 Run the extraction for each video
+async function runAll() {
+  for (const id of VIDEO_IDS) {
+    console.log(`\n🎯 Checking video ID: ${id}`);
+    await fetchVideoDetails(id);
+  }
+}
+
+runAll();
