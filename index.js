@@ -12,15 +12,21 @@ const API_KEY = process.env.YOUTUBE_API_KEY;
 
 // 📺 List of YouTube links and playlist IDs
 const VIDEO_LINKS = [
-//   'https://www.youtube.com/watch?v=z51M9cit-X0',
-//   'https://youtu.be/dCoELp77I9o',
-//   'https://youtube.com/shorts/SotKhV-kjfI',
-//   'https://www.youtube.com/watch?v=q83Jw-TKHdw'
+  'https://www.youtube.com/watch?v=z51M9cit-X0',
+  'https://youtu.be/dCoELp77I9o',
+  'https://youtube.com/shorts/SotKhV-kjfI',
+  'https://www.youtube.com/watch?v=q83Jw-TKHdw'
 ];
 
 const PLAYLIST_IDS = [
-  'https://www.youtube.com/playlist?list=PLVD3APpfd1ts0x9qpHagm5Nyd2GKxwrly'
+  'PLVD3APpfd1ts0x9qpHagm5Nyd2GKxwrly' // ✅ Only the ID, not the full URL
 ];
+
+const CHANNEL_URLS = [
+  // 'https://www.youtube.com/@Aideliotv',
+  // 'https://www.youtube.com/channel/UCabc123xyz...'
+];
+
 
 // 🔎 Extract video ID from various YouTube URL formats
 function extractVideoIdFromUrl(url) {
@@ -109,6 +115,38 @@ async function fetchVideoDetails(videoId) {
   }
 }
 
+async function getUploadsPlaylistId(channelUrl) {
+  try {
+    let channelId;
+
+    // Case: @handle
+    if (channelUrl.includes('@')) {
+      const username = channelUrl.split('@')[1].replace('/', '');
+      const res = await axios.get(
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${username}&key=${API_KEY}`
+      );
+      channelId = res.data.items[0]?.snippet?.channelId;
+    } else {
+      // Extract channel ID from URL
+      const match = channelUrl.match(/channel\/([a-zA-Z0-9_-]+)/);
+      channelId = match ? match[1] : null;
+    }
+
+    if (!channelId) throw new Error('Channel ID not found');
+
+    // Get uploads playlist
+    const res2 = await axios.get(
+      `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${API_KEY}`
+    );
+
+    return res2.data.items[0]?.contentDetails?.relatedPlaylists?.uploads || null;
+  } catch (err) {
+    console.error(`❌ Failed to get uploads playlist from ${channelUrl}: ${err.message}`);
+    return null;
+  }
+}
+
+
 // 🔍 Extract codes by type using regex patterns
 function extractCodes(text) {
   const patterns = {
@@ -195,7 +233,9 @@ async function runAll() {
     else console.warn(`⚠️ Could not extract video ID from URL: ${url}`);
   }
 
-  for (const playlistId of PLAYLIST_IDS) {
+  for (const playlistUrlOrId of PLAYLIST_IDS) {
+    const playlistIdMatch = playlistUrlOrId.match(/[?&]list=([a-zA-Z0-9_-]+)/);
+    const playlistId = playlistIdMatch ? playlistIdMatch[1] : playlistUrlOrId;
     const idsFromPlaylist = await fetchVideoIdsFromPlaylist(playlistId);
     idsFromPlaylist.forEach(id => videoIds.add(id));
   }
@@ -204,6 +244,15 @@ async function runAll() {
     console.log(`\n🎯 Checking video ID: ${id}`);
     await fetchVideoDetails(id);
   }
+
+    for (const channelUrl of CHANNEL_URLS) {
+    const uploadsPlaylistId = await getUploadsPlaylistId(channelUrl);
+    if (uploadsPlaylistId) {
+      console.log(`📺 Found uploads playlist: ${uploadsPlaylistId}`);
+      PLAYLIST_IDS.push(uploadsPlaylistId);
+    }
+  }
+
 }
 
 runAll();
