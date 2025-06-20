@@ -14,7 +14,7 @@ const API_KEY = process.env.YOUTUBE_API_KEY;
 // Configuration
 const VIDEO_LINKS = [
     'https://www.youtube.com/watch?v=z51M9cit-X0',
-    'https://www.youtube.com/watch?v=example123',
+    'https://www.youtube.com/watch?v=6N5kffWMU_k',
     'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
 ];
 
@@ -39,23 +39,48 @@ function extractVideoIdFromUrl(url) {
         console.error(`Error extracting video ID from ${url}:`, error.message);
         return null;
     }
-} // ← ADD THIS MISSING CLOSING BRACE
+}
 
+async function validateVideoExists(videoId) {
+    try {
+        const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${API_KEY}`;
+        const response = await axios.get(url);
+        return response.data.items && response.data.items.length > 0;
+    } catch (error) {
+        console.error(`❌ Error validating video ${videoId}:`, error.message);
+        return false;
+    }
+}
+
+// SINGLE COMPLETE fetchVideoDetails function
 async function fetchVideoDetails(videoId) {
     try {
+        // Validate video exists first
+        const exists = await validateVideoExists(videoId);
+        if (!exists) {
+            console.log(`⚠️ Video ${videoId} does not exist or is not accessible`);
+            return;
+        }
+
         const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${API_KEY}`;
         const response = await axios.get(url);
         
         if (response.data.items && response.data.items.length > 0) {
-            const video = response.data.items[0];
+            const video = response.data.items[0]; // FIXED: Added [0] to access first item
             console.log(`📹 Video: ${video.snippet.title}`);
             
             // Fetch transcript
+            console.log(`🎯 Fetching transcript for video: ${videoId}`);
             const transcript = await fetchTranscript(videoId);
             
             if (transcript.length > 0) {
+                console.log(`✅ Transcript found: ${transcript.length} lines`);
+                
                 // Extract codes from transcript
+                console.log(`🔍 Starting code extraction...`);
                 const extractionResult = await extractFromTranscript(transcript);
+                
+                console.log(`📊 Extraction result:`, extractionResult);
                 
                 if (extractionResult.codes.length > 0 || extractionResult.links.length > 0) {
                     const videoData = {
@@ -65,9 +90,22 @@ async function fetchVideoDetails(videoId) {
                         ...extractionResult
                     };
                     
+                    console.log(`💾 Saving data for video: ${videoId}`);
+                    console.log(`   - Codes found: ${extractionResult.codes.length}`);
+                    console.log(`   - Links found: ${extractionResult.links.length}`);
+                    console.log(`   - Confidence: ${extractionResult.confidence}`);
+                    
                     // Sync to Google Sheets
-                    await syncToSheet(videoData);
+                    try {
+                        await syncToSheet(videoData);
+                    } catch (sheetError) {
+                        console.error(`❌ Failed to sync to Google Sheets: ${sheetError.message}`);
+                    }
+                } else {
+                    console.log(`⚠️ No codes or links found in video: ${videoId}`);
                 }
+            } else {
+                console.log(`⚠️ No transcript available for video: ${videoId}`);
             }
         }
         
@@ -97,6 +135,8 @@ async function runAll() {
                 console.error(`Error processing URL ${url}:`, error.message);
             }
         }
+        
+        console.log(`📝 Processing ${videoIds.size} videos...`);
         
         // Process each video
         for (const id of videoIds) {
