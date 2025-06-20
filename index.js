@@ -26,7 +26,7 @@ const VIDEO_LINKS = [
 ];
 
 const PLAYLIST_IDS = [
-  'PLVD3APpfd1ts0x9qpHagm5Nyd2GKxwrly' // ✅ Only the ID, not the full URL
+ // 'PLVD3APpfd1ts0x9qpHagm5Nyd2GKxwrly' // ✅ Only the ID, not the full URL
 ];
 
 const CHANNEL_URLS = [
@@ -264,7 +264,7 @@ async function runAll() {
 }
 
 // 🔁 Schedule periodic scans
-setInterval(runAll, INTERVAL_MS);
+//setInterval(runAll, INTERVAL_MS);
 
 // ▶️ Initial run
 runAll();
