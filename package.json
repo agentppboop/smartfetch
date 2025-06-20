@@ -16,6 +16,7 @@
     "google-auth-library": "^9.15.1",
     "google-spreadsheet": "^4.1.4",
     "joi": "^17.13.3",
-    "json2csv": "^6.0.0-alpha.2"
+    "json2csv": "^6.0.0-alpha.2",
+    "openai": "^5.5.1"
   }
 }

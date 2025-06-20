@@ -274,26 +274,30 @@ runAll();
 
 const extractCodes = require('./extractCodes');
 const scoreMatch = require('./scoreMatch');
-const nlpFallback = require('./nlpFallback');
+// const nlpFallback = require('./nlpFallback'); // 📴 Commented for now
 
 async function extractFromTranscript(transcriptLines) {
+  console.log("\n▶️ Starting extraction pipeline...");
+
   const regexResult = extractCodes(transcriptLines);
-  let score = scoreMatch(regexResult);
+  const score = scoreMatch(regexResult);
 
-  if (score < 0.6) {
-    const combinedText = transcriptLines.join(' ');
-    const nlpResult = await nlpFallback(combinedText);
-    if (nlpResult) {
-      score = scoreMatch(nlpResult);
-      if (score >= 0.6) {
-        console.log('✅ GPT Extracted:', nlpResult, `| Score: ${score}`);
-        return nlpResult;
-      }
-    }
-    console.log('❌ Low confidence — skipped');
-    return null;
+  if (score >= 0.6) {
+    console.log("✅ Regex result accepted (score:", score.toFixed(2) + ")");
+    console.log(regexResult);
+  } else {
+    console.log("⚠️ Regex confidence too low (score:", score.toFixed(2) + ")");
+    console.log("🧠 Manually test this case on Perplexity:");
+    console.log("👉", transcriptLines.join(' '));
   }
+}
 
-  console.log('✅ Regex Extracted:', regexResult, `| Score: ${score}`);
-  return regexResult;
+if (require.main === module) {
+  const testTranscript = [
+    "Guys, use the code WINTER25 to get 25% off your next order!",
+    "Some deals don't even need a code—just check the site.",
+    "Today's a special 500 rupee flat discount, hurry!"
+  ];
+
+  extractFromTranscript(testTranscript);
 }

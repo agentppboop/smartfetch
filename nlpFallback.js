@@ -17,7 +17,9 @@ Return this JSON:
 }`;
 
   const completion = await openai.chat.completions.create({
-    model: "gpt-4",
+    model: "gpt-3.5-turbo", // change to model: "gpt-4", if bought later
+
+
     messages: [{ role: "user", content: prompt }],
   });
 
@@ -30,3 +32,9 @@ Return this JSON:
 }
 
 module.exports = nlpFallback;
+
+// 🔬 TEST
+if (require.main === module) {
+  const testText = "Click now and enjoy a surprise 30% discount — no code required!";
+  nlpFallback(testText).then(console.log);
+}
