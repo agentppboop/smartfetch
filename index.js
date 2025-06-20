@@ -1,5 +1,8 @@
 // 🔁 Add this line near other constants
 const INTERVAL_MS = 6 * 60 * 60 * 1000; // every 6 hours
+// index.js
+const env = require('./validateEnv'); // loads and validates .env
+console.log('✅ Env loaded:', env);
 
 
 const { GoogleSpreadsheet } = require('google-spreadsheet');
@@ -269,3 +272,28 @@ async function runAll() {
 // ▶️ Initial run
 runAll();
 
+const extractCodes = require('./extractCodes');
+const scoreMatch = require('./scoreMatch');
+const nlpFallback = require('./nlpFallback');
+
+async function extractFromTranscript(transcriptLines) {
+  const regexResult = extractCodes(transcriptLines);
+  let score = scoreMatch(regexResult);
+
+  if (score < 0.6) {
+    const combinedText = transcriptLines.join(' ');
+    const nlpResult = await nlpFallback(combinedText);
+    if (nlpResult) {
+      score = scoreMatch(nlpResult);
+      if (score >= 0.6) {
+        console.log('✅ GPT Extracted:', nlpResult, `| Score: ${score}`);
+        return nlpResult;
+      }
+    }
+    console.log('❌ Low confidence — skipped');
+    return null;
+  }
+
+  console.log('✅ Regex Extracted:', regexResult, `| Score: ${score}`);
+  return regexResult;
+}
