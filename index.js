@@ -1,4 +1,4 @@
-// index.js - COMPLETE CORRECTED VERSION
+// index.js - COMPLETE CORRECTED VERSION WITH CHANNEL PROCESSING
 
 // Validate environment first
 const envVars = require('./validateEnv');
@@ -13,17 +13,34 @@ const API_KEY = process.env.YOUTUBE_API_KEY;
 
 // Configuration
 const VIDEO_LINKS = [
-    'https://www.youtube.com/watch?v=z51M9cit-X0',
-    'https://www.youtube.com/watch?v=6N5kffWMU_k',
-    'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
-];
-
-const PLAYLIST_IDS = [
-    'PLexampleplaylist123'
+    // Individual video URLs (optional)
 ];
 
 const CHANNEL_IDS = [
-    'UCexamplechannel123'
+    'UCIPPMRA040LQr5QPyJEbmXA', // MrBeast Gaming
+    'UCX6OQ3DkcsbYNE6H8uQQuVA', // MrBeast main channel
+    // Gaming channels
+    'UCjmJDM5pRKbUlVIzDYYWb6g',
+    'UC7_YxT-KID8kRbqZo7MyscQ',
+    'UCke6I9N4KfC968-yRcd5YRg',
+    'UCq-Fj5jknLsUf-MWSy4_brA',
+    // Tech review channels
+    'UCMiJRAwDNSNzuYeN2uWa0pA',
+    'UCzlXf-yUIaOpOjEjPrOO9TA',
+    'UCOmcA3f_RrH6b9NmcNa4tdg',
+    'UC6107grRI4m0o2-emgoDnAA',
+    'UCXuqSBlHAE6Xw-yeJA0Tunw',
+    // Deal/coupon channels
+    'UC5Qbo0AR3CwpmEq751BIy0g',
+    'UCnzjNQQOosDeUBa2MUmTV3g',
+    'UC8Q7XEy86Q7T-3kNpNjYgwA',
+    'UCBJycsmduvYEL83R_U4JriQ',
+    // Affiliate marketing channels
+    'UC7RZRFCrN4XKoMsy5MgJKrg',
+    'UCuVoO3TArgovwAeWhY1TVSA',
+    'UCMQapqmTjEIBNK6_a5H_4Qg',
+    'UC2aQkrg2-Nh5rIITzNe8D_Q',
+    'UCL6JmiMXKoXS6bpP1D3bk8g'
 ];
 
 function extractVideoIdFromUrl(url) {
@@ -41,6 +58,33 @@ function extractVideoIdFromUrl(url) {
     }
 }
 
+// NEW FUNCTION: Fetch recent videos from a channel
+async function fetchChannelVideos(channelId, maxResults = 10) {
+    try {
+        console.log(`🔍 Fetching videos from channel: ${channelId}`);
+        
+        // Get recent videos from channel
+        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&type=video&order=date&maxResults=${maxResults}&key=${API_KEY}`;
+        
+        const response = await axios.get(searchUrl);
+        
+        if (response.data.items && response.data.items.length > 0) {
+            console.log(`✅ Found ${response.data.items.length} videos from channel ${channelId}`);
+            return response.data.items.map(item => item.id.videoId);
+        } else {
+            console.log(`⚠️ No videos found for channel: ${channelId}`);
+            return [];
+        }
+        
+    } catch (error) {
+        console.error(`❌ Error fetching videos from channel ${channelId}:`, error.message);
+        if (error.response) {
+            console.error(`API Response:`, error.response.data);
+        }
+        return [];
+    }
+}
+
 async function validateVideoExists(videoId) {
     try {
         const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${API_KEY}`;
@@ -52,7 +96,6 @@ async function validateVideoExists(videoId) {
     }
 }
 
-// SINGLE COMPLETE fetchVideoDetails function
 async function fetchVideoDetails(videoId) {
     try {
         // Validate video exists first
@@ -66,7 +109,7 @@ async function fetchVideoDetails(videoId) {
         const response = await axios.get(url);
         
         if (response.data.items && response.data.items.length > 0) {
-            const video = response.data.items[0]; // FIXED: Added [0] to access first item
+            const video = response.data.items[0];
             console.log(`📹 Video: ${video.snippet.title}`);
             
             // Fetch transcript
@@ -86,6 +129,8 @@ async function fetchVideoDetails(videoId) {
                     const videoData = {
                         videoId: videoId,
                         videoTitle: video.snippet.title,
+                        channelTitle: video.snippet.channelTitle,
+                        publishedAt: video.snippet.publishedAt,
                         timestamp: new Date().toISOString(),
                         ...extractionResult
                     };
@@ -122,7 +167,7 @@ async function runAll() {
         console.log('🚀 Starting SmartFetch...');
         const videoIds = new Set();
         
-        // Process video links
+        // Process individual video links
         for (const url of VIDEO_LINKS) {
             try {
                 const videoId = extractVideoIdFromUrl(url);
@@ -136,15 +181,37 @@ async function runAll() {
             }
         }
         
-        console.log(`📝 Processing ${videoIds.size} videos...`);
+        // NEW: Process channels to get recent videos
+        console.log(`🎯 Processing ${CHANNEL_IDS.length} channels...`);
+        
+        for (const channelId of CHANNEL_IDS) {
+            try {
+                console.log(`\n📺 Processing channel: ${channelId}`);
+                const channelVideoIds = await fetchChannelVideos(channelId, 5); // Get 5 recent videos per channel
+                
+                // Add channel videos to our set
+                channelVideoIds.forEach(id => videoIds.add(id));
+                
+                // Rate limiting between channels
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+            } catch (error) {
+                console.error(`❌ Error processing channel ${channelId}:`, error.message);
+            }
+        }
+        
+        console.log(`\n📝 Processing ${videoIds.size} total videos...`);
         
         // Process each video
+        let processedCount = 0;
         for (const id of videoIds) {
-            console.log(`\n🎯 Checking video ID: ${id}`);
+            processedCount++;
+            console.log(`\n🎯 [${processedCount}/${videoIds.size}] Processing video: ${id}`);
             await fetchVideoDetails(id);
         }
         
         console.log('\n✅ SmartFetch completed successfully');
+        console.log(`📊 Total videos processed: ${videoIds.size}`);
         
     } catch (error) {
         console.error('❌ Error in runAll:', error.message);
@@ -153,7 +220,3 @@ async function runAll() {
 
 // Run immediately
 runAll();
-
-// Schedule periodic runs (uncomment when ready)
-// const INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
-// setInterval(runAll, INTERVAL_MS);

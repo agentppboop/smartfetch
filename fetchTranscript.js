@@ -1,5 +1,6 @@
-// fetchTranscript.js - UPDATED VERSION using YouTube API
+// fetchTranscript.js - PRODUCTION VERSION
 
+const { YoutubeTranscript } = require('youtube-transcript');
 const axios = require('axios');
 require('dotenv').config();
 
@@ -12,41 +13,39 @@ async function fetchTranscript(videoId) {
     }
 
     try {
-        console.log(`🎯 Fetching captions for video: ${videoId}`);
+        console.log(`🎯 Fetching transcript for video: ${videoId}`);
         
-        // Step 1: Get available caption tracks
-        const captionsUrl = `https://www.googleapis.com/youtube/v3/captions?part=snippet&videoId=${videoId}&key=${API_KEY}`;
-        const captionsResponse = await axios.get(captionsUrl);
-        
-        if (!captionsResponse.data.items || captionsResponse.data.items.length === 0) {
-            console.log('⚠️ No captions available for this video');
-            return [];
+        // Try youtube-transcript first (free method)
+        try {
+            const transcript = await YoutubeTranscript.fetchTranscript(videoId);
+            if (transcript && transcript.length > 0) {
+                const transcriptLines = transcript.map(item => item.text);
+                console.log(`✅ Transcript fetched: ${transcriptLines.length} lines`);
+                return transcriptLines;
+            }
+        } catch (transcriptError) {
+            console.log('⚠️ youtube-transcript failed, trying video description...');
         }
 
-        console.log(`✅ Found ${captionsResponse.data.items.length} caption track(s)`);
+        // Fallback to video description
+        const videoUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${API_KEY}`;
+        const videoResponse = await axios.get(videoUrl);
         
-        // For now, return mock transcript data since downloading actual captions requires additional OAuth
-        // In a production environment, you'd need to implement OAuth2 flow to download caption content
-        const mockTranscript = [
-            "Welcome to this video about amazing deals and discounts",
-            "Use promo code SAVE20 to get 20% off your first order",
-            "Don't forget to check out our special offer with code NEWUSER",
-            "Visit our website at https://example.com for more deals",
-            "Get ₹500 cashback with code CASHBACK500",
-            "This offer is valid for limited time only"
-        ];
-        
-        console.log(`✅ Mock transcript generated: ${mockTranscript.length} lines`);
-        return mockTranscript;
+        if (videoResponse.data.items && videoResponse.data.items.length > 0) {
+            const description = videoResponse.data.items[0].snippet.description || '';
+            
+            if (description.length > 0) {
+                console.log(`✅ Using video description: ${description.length} characters`);
+                const descriptionLines = description.split('\n').filter(line => line.trim().length > 0);
+                return descriptionLines;
+            }
+        }
+
+        console.log('⚠️ No transcript or description available');
+        return [];
         
     } catch (error) {
-        if (error.response?.status === 403) {
-            console.log('⚠️ Caption access forbidden - video may have restricted captions');
-        } else if (error.response?.status === 404) {
-            console.log('⚠️ Video not found or captions not available');
-        } else {
-            console.error(`❌ Error fetching captions: ${error.message}`);
-        }
+        console.error(`❌ Error fetching transcript: ${error.message}`);
         return [];
     }
 }
