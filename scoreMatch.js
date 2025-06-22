@@ -10,10 +10,11 @@ function scoreMatch({ codes = [], percent_off = [], flat_discount = [], confiden
     }
 
     let score = 0;
-if (codes.length > 0) score += 0.5;      // Stronger for code presence
-if (percent_off.length || flat_discount.length) score += 0.3;
-score += confidence * 0.2;               // Reduced reliance on confidence
-return Math.min(score, 1.0);
+  const qualityCodes = data.codes.filter(c => c.length >= 5 && /[A-Z]{2,}\d{2,}/.test(c));
+  if (qualityCodes.length > 0) score += 0.6;
+  else if (data.codes.length > 0) score += 0.2;
+  // ...existing logic...
+  return Math.min(score, 1.0);
 
 
     // Award points for having codes
