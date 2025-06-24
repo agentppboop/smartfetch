@@ -1,5 +1,30 @@
 // validateEnv.js - COMPLETE CORRECTED VERSION
 
+const axios = require('axios');
+
+async function validateYouTubeAPIKey() {
+  if (!process.env.YOUTUBE_API_KEY) {
+    throw new Error('YOUTUBE_API_KEY is missing in .env');
+  }
+  
+  try {
+    const response = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
+      params: {
+        part: 'snippet',
+        id: 'dQw4w9WgXcQ', // Test with a known video
+        key: process.env.YOUTUBE_API_KEY
+      },
+      timeout: 5000
+    });
+    return response.status === 200;
+  } catch (error) {
+    console.error('❌ API key validation failed:', error.response?.data?.error?.message || error.message);
+    return false;
+  }
+}
+
+// Call this in your existing validation flow
+
 const Joi = require('joi');
 
 require('dotenv').config(); // loads .env variables

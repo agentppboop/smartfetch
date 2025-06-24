@@ -2,8 +2,13 @@
   "name": "smartfetch",
   "version": "1.0.0",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+   "scripts": {
+    "start": "node --expose-gc index.js",
+    "dev": "node --expose-gc --inspect index.js",
+    "test": "node --expose-gc textExtract.js",
+    "memory-test": "node --expose-gc --max-old-space-size=512 index.js",
+    "debug": "node --expose-gc --inspect-brk index.js",
+    "profile": "node --expose-gc --prof index.js"
   },
   "keywords": [],
   "author": "",
@@ -19,8 +24,10 @@
     "google-spreadsheet": "^4.1.4",
     "joi": "^17.13.3",
     "json2csv": "^6.0.0-alpha.2",
+    "lru-cache": "^11.1.0",
     "node-cache": "^5.1.2",
     "openai": "^5.5.1",
     "pg": "^8.16.2"
   }
 }
+

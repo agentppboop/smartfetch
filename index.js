@@ -12,6 +12,177 @@ const EventEmitter = require('events');
 
 const API_KEY = process.env.YOUTUBE_API_KEY;
 
+// Add after the imports section
+function validateChannelIds(channelIds) {
+  const valid = [];
+  const invalid = [];
+
+  channelIds.forEach(id => {
+    if (typeof id === 'string' && id.startsWith('UC') && id.length === 24) {
+      valid.push(id);
+    } else {
+      console.warn(`⚠️ Invalid channel ID: ${id} (must start with 'UC' and be 24 characters)`);
+      invalid.push(id);
+    }
+  });
+
+  if (invalid.length > 0) {
+    console.log(`📋 Channel validation: ${valid.length}/${channelIds.length} valid channels`);
+  }
+
+  return valid;
+}
+
+// Add after your imports
+function sanitizeChannelId(id) {
+  // Remove any characters not allowed in YouTube channel IDs and trim to 24 chars
+  return (id || '').replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 24);
+}
+
+// Enhanced validation: strictly enforce format
+function isStrictlyValidChannelId(id) {
+  return typeof id === 'string' && /^UC[a-zA-Z0-9_-]{22}$/.test(id);
+}
+
+
+
+// Add this function to your index.js
+async function validateVideosExist(videoIds) {
+  console.log(`🔍 Validating ${videoIds.length} video IDs...`);
+  
+  const validVideos = [];
+  const invalidVideos = [];
+  
+  // Process in batches to avoid API limits
+  for (let i = 0; i < videoIds.length; i += 50) {
+    const batch = videoIds.slice(i, i + 50);
+    
+    try {
+      await rateLimiter.wait();
+      
+      const response = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
+        params: {
+          part: 'id',
+          id: batch.join(','),
+          key: API_KEY
+        },
+        timeout: 10000
+      });
+      
+      const foundIds = response.data.items.map(item => item.id);
+      validVideos.push(...foundIds);
+      
+      // Find missing IDs
+      const missingIds = batch.filter(id => !foundIds.includes(id));
+      invalidVideos.push(...missingIds);
+      
+      rateLimiter.recordSuccess();
+      
+    } catch (error) {
+      console.error(`❌ Error validating batch: ${error.message}`);
+      rateLimiter.recordError(error.response?.status === 403 ? 'quota_exceeded' : 'generic');
+      
+      // Assume all are valid if validation fails
+      validVideos.push(...batch);
+    }
+  }
+  
+  console.log(`✅ Validation complete: ${validVideos.length}/${videoIds.length} valid videos`);
+  return { validVideos, invalidVideos };
+}
+
+class CircuitBreaker {
+  constructor(threshold = 5, timeout = 60000) {
+    this.threshold = threshold;
+    this.timeout = timeout;
+    this.failureCount = 0;
+    this.state = 'CLOSED'; // CLOSED, OPEN, HALF_OPEN
+    this.nextAttempt = Date.now();
+  }
+
+  async execute(fn) {
+    if (this.state === 'OPEN') {
+      if (Date.now() < this.nextAttempt) {
+        throw new Error('Circuit breaker is OPEN');
+      }
+      this.state = 'HALF_OPEN';
+    }
+
+    try {
+      const result = await fn();
+      this.onSuccess();
+      return result;
+    } catch (error) {
+      this.onFailure();
+      throw error;
+    }
+  }
+
+  onSuccess() {
+    this.failureCount = 0;
+    this.state = 'CLOSED';
+  }
+
+  onFailure() {
+    this.failureCount++;
+    if (this.failureCount >= this.threshold) {
+      this.state = 'OPEN';
+      this.nextAttempt = Date.now() + this.timeout;
+    }
+  }
+}
+
+// Initialize circuit breaker
+const apiCircuitBreaker = new CircuitBreaker(5, 60000);
+
+// Add to your system
+const { Pool } = require('pg');
+
+class DatabaseManager {
+  constructor() {
+    this.pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      max: 20,
+      idleTimeoutMillis: 30000
+    });
+  }
+
+  async batchInsertVideos(videoDataArray) {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      for (const data of videoDataArray) {
+        await client.query(`
+          INSERT INTO video_results (
+            video_id, video_title, channel_id, timestamp,
+            links, codes, percent_off, flat_discount, confidence
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          ON CONFLICT (video_id) DO UPDATE SET
+            timestamp = EXCLUDED.timestamp,
+            links = EXCLUDED.links,
+            codes = EXCLUDED.codes,
+            confidence = EXCLUDED.confidence
+        `, [
+          data.videoId, data.videoTitle, data.channelId,
+          data.timestamp, JSON.stringify(data.links),
+          JSON.stringify(data.codes), JSON.stringify(data.percent_off),
+          JSON.stringify(data.flat_discount), data.confidence
+        ]);
+      }
+      
+      await client.query('COMMIT');
+      return { success: true, processed: videoDataArray.length };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+}
+
+
 // ADVANCED PARALLEL PROCESSING CONFIGURATION
 const PROCESSING_CONFIG = {
     // Concurrency limits
@@ -129,6 +300,148 @@ class PerformanceMonitor extends EventEmitter {
         console.log(`   Memory usage: ${stats.memoryUsageMB.heapUsed}MB / ${stats.memoryUsageMB.heapTotal}MB`);
     }
 }
+
+// Enhanced Memory Manager - add after PerformanceMonitor class
+class EnhancedMemoryManager {
+  constructor(maxMB = 512) {
+    this.maxMB = maxMB;
+    this.checkInterval = 30000; // 30 seconds
+    this.warningThreshold = 0.8; // 80% of max
+    this.criticalThreshold = 0.9; // 90% of max
+    this.startMonitoring();
+  }
+
+  startMonitoring() {
+    setInterval(() => {
+      this.checkMemory();
+    }, this.checkInterval);
+  }
+
+  checkMemory() {
+    const memUsage = process.memoryUsage();
+    const heapUsedMB = memUsage.heapUsed / 1024 / 1024;
+    const heapTotalMB = memUsage.heapTotal / 1024 / 1024;
+    
+    if (heapUsedMB > this.maxMB * this.criticalThreshold) {
+      console.log(`🚨 CRITICAL memory usage: ${heapUsedMB.toFixed(2)}MB/${this.maxMB}MB`);
+      this.emergencyCleanup();
+    } else if (heapUsedMB > this.maxMB * this.warningThreshold) {
+      console.log(`⚠️ High memory usage: ${heapUsedMB.toFixed(2)}MB/${this.maxMB}MB`);
+      this.performCleanup();
+    }
+  }
+
+  performCleanup() {
+    // Clear channel video cache
+    if (typeof channelVideoCache !== 'undefined') {
+      channelVideoCache.clear();
+    }
+    
+    // Clear transcript cache if available
+    if (typeof transcriptCache !== 'undefined') {
+      transcriptCache.clear();
+    }
+    
+    console.log('🧹 Memory cleanup performed');
+  }
+
+  emergencyCleanup() {
+    this.performCleanup();
+    
+    // Force garbage collection if available
+    if (global.gc) {
+      global.gc();
+      console.log('🗑️ Emergency garbage collection triggered');
+    } else {
+      console.log('💡 Run with --expose-gc flag to enable manual garbage collection');
+    }
+  }
+
+  getMemoryStats() {
+    const memUsage = process.memoryUsage();
+    return {
+      heapUsed: (memUsage.heapUsed / 1024 / 1024).toFixed(2),
+      heapTotal: (memUsage.heapTotal / 1024 / 1024).toFixed(2),
+      rss: (memUsage.rss / 1024 / 1024).toFixed(2),
+      external: (memUsage.external / 1024 / 1024).toFixed(2)
+    };
+  }
+}
+
+// Initialize enhanced memory manager
+const memoryManager = new EnhancedMemoryManager(
+  parseInt(process.env.MEMORY_LIMIT_MB) || 512
+);
+
+// Adaptive Rate Limiter - add after EnhancedMemoryManager
+class AdaptiveRateLimiter {
+  constructor(baseDelay = 200) {
+    this.baseDelay = baseDelay;
+    this.currentDelay = baseDelay;
+    this.successCount = 0;
+    this.errorCount = 0;
+    this.lastCall = 0;
+    this.consecutiveErrors = 0;
+  }
+
+  async wait() {
+    const now = Date.now();
+    const timeSinceLastCall = now - this.lastCall;
+    
+    if (timeSinceLastCall < this.currentDelay) {
+      const waitTime = this.currentDelay - timeSinceLastCall;
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+    
+    this.lastCall = Date.now();
+  }
+
+  recordSuccess() {
+    this.successCount++;
+    this.consecutiveErrors = 0;
+    
+    // Gradually reduce delay on consecutive successes
+    if (this.successCount % 5 === 0) {
+      this.currentDelay = Math.max(this.baseDelay, this.currentDelay * 0.9);
+    }
+  }
+
+  recordError(errorType = 'generic') {
+    this.errorCount++;
+    this.consecutiveErrors++;
+    this.successCount = 0;
+    
+    // Increase delay based on error type and consecutive errors
+    let multiplier = 1.5;
+    if (errorType === 'rate_limit' || errorType === '429') {
+      multiplier = 2.0;
+    } else if (errorType === 'quota_exceeded' || errorType === '403') {
+      multiplier = 3.0;
+    }
+    
+    this.currentDelay = Math.min(
+      30000, // Max 30 seconds
+      this.currentDelay * multiplier * (1 + this.consecutiveErrors * 0.1)
+    );
+    
+    console.log(`⚠️ Rate limiter adjusted: ${this.currentDelay}ms delay after ${errorType} error`);
+  }
+
+  getStats() {
+    return {
+      currentDelay: this.currentDelay,
+      successCount: this.successCount,
+      errorCount: this.errorCount,
+      consecutiveErrors: this.consecutiveErrors
+    };
+  }
+}
+
+// Initialize rate limiter
+const rateLimiter = new AdaptiveRateLimiter(
+  parseInt(process.env.API_DELAY_MS) || 200
+);
+
 
 const performanceMonitor = new PerformanceMonitor();
 
@@ -377,56 +690,100 @@ async function fetchChannelVideos(channelId, maxResults = 10) {
 }
 
 // Enhanced video validation with batch checking
-async function validateVideosExist(videoIds) {
-    const validVideos = [];
-    const invalidVideos = [];
+// Update the existing fetchChannelVideos function
+async function fetchChannelVideos(channelId, maxResults = 10) {
+  try {
+    // Apply rate limiting
+    await rateLimiter.wait();
     
-    // Process in chunks of 50 (YouTube API limit)
-    for (let i = 0; i < videoIds.length; i += 50) {
-        const chunk = videoIds.slice(i, i + 50);
-        
-        try {
-            performanceMonitor.recordApiCall();
-            
-            const url = `https://www.googleapis.com/youtube/v3/videos`;
-            const params = {
-                part: 'snippet',
-                id: chunk.join(','),
-                key: API_KEY
-            };
-            
-            const response = await axios.get(url, { params, timeout: 10000 });
-            
-            const foundVideoIds = new Set(
-                response.data.items.map(item => item.id)
-            );
-            
-            chunk.forEach(videoId => {
-                if (foundVideoIds.has(videoId)) {
-                    validVideos.push(videoId);
-                } else {
-                    invalidVideos.push(videoId);
-                }
-            });
-            
-            // Small delay between chunks
-            if (i + 50 < videoIds.length) {
-                await delay(200);
-            }
-            
-        } catch (error) {
-            console.error(`❌ Error validating video chunk: ${error.message}`);
-            // Assume all videos in chunk are invalid on error
-            invalidVideos.push(...chunk);
-        }
+    // Check cache first (existing logic)
+    const cacheKey = `${channelId}_${maxResults}`;
+    const cached = channelVideoCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < 30 * 60 * 1000) {
+      console.log(`♻️ Using cached videos for channel: ${channelId}`);
+      performanceMonitor.recordCacheHit();
+      rateLimiter.recordSuccess(); // Record cache hit as success
+      return cached.data;
+    }
+
+    console.log(`🔍 Fetching videos from channel: ${channelId}`);
+    performanceMonitor.recordApiCall();
+    
+    const searchUrl = `https://www.googleapis.com/youtube/v3/search`;
+    const params = {
+      part: 'snippet',
+      channelId: channelId,
+      type: 'video',
+      order: 'date',
+      maxResults: maxResults,
+      key: API_KEY
+    };
+    
+    const response = await axios.get(searchUrl, {
+      params,
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'SmartFetch/2.0'
+      }
+    });
+
+    // Record successful API call
+    rateLimiter.recordSuccess();
+
+    if (response.data.items && response.data.items.length > 0) {
+      const result = {
+        channelId,
+        videoIds: response.data.items.map(item => item.id.videoId),
+        channelTitle: response.data.items[0].snippet.channelTitle,
+        totalResults: response.data.pageInfo?.totalResults || 0,
+        success: true
+      };
+
+      // Cache the result
+      channelVideoCache.set(cacheKey, {
+        data: result,
+        timestamp: Date.now()
+      });
+
+      console.log(`✅ Found ${result.videoIds.length} videos from ${result.channelTitle}`);
+      return result;
+    } else {
+      console.log(`⚠️ No videos found for channel: ${channelId}`);
+      return { channelId, videoIds: [], success: true };
+    }
+
+  } catch (error) {
+    // Record error with type for adaptive rate limiting
+    let errorType = 'generic';
+    if (error.response?.status === 429) {
+      errorType = 'rate_limit';
+    } else if (error.response?.status === 403) {
+      errorType = 'quota_exceeded';
+    } else if (error.response?.status === 400) {
+      errorType = 'bad_request';
     }
     
-    if (invalidVideos.length > 0) {
-        console.log(`⚠️ Found ${invalidVideos.length} invalid/inaccessible videos`);
-    }
+    rateLimiter.recordError(errorType);
     
-    return { validVideos, invalidVideos };
+    console.error(`❌ Error fetching videos from channel ${channelId}:`, error.message);
+    if (error.response?.status === 403) {
+      console.error('🔑 API quota exceeded or invalid API key');
+    } else if (error.response?.status === 404) {
+      console.error('🔍 Channel not found');
+    } else if (error.response?.status === 400) {
+      console.error('📋 Invalid channel ID format');
+    }
+
+    return {
+      channelId,
+      videoIds: [],
+      success: false,
+      error: error.message,
+      statusCode: error.response?.status
+    };
+  }
 }
+
 
 // Enhanced video processing with detailed extraction
 async function processVideoDetailed(videoId, channelId = null) {
@@ -628,6 +985,16 @@ async function runAll() {
                 console.warn(`⚠️ Could not extract video ID from URL: ${url}`);
             }
         }
+
+        // Before you process channels, sanitize and validate
+const sanitizedChannelIds = CHANNEL_IDS.map(sanitizeChannelId);
+const validChannelIds = sanitizedChannelIds.filter(isStrictlyValidChannelId);
+
+if (validChannelIds.length === 0) {
+  console.error('❌ No valid channel IDs to process. Please check your CHANNEL_IDS list.');
+  return;
+}
+
         
         // STEP 1: Parallel channel processing
         if (CHANNEL_IDS.length > 0) {
@@ -647,7 +1014,7 @@ async function runAll() {
                 }
             );
             
-            const { results: channelResults, errors: channelErrors } = await channelProcessor.processInBatches(CHANNEL_IDS);
+            const { results: channelResults, errors: channelErrors } = await channelProcessor.processInBatches(validChannelIds);
             
             // Create video-to-channel mapping and collect video IDs
             let totalChannelVideos = 0;
@@ -755,6 +1122,20 @@ async function runAll() {
             Object.entries(failureReasons).forEach(([reason, count]) => {
                 console.log(`   - ${reason}: ${count} videos`);
             });
+             // Add rate limiter stats
+  const rateLimiterStats = rateLimiter.getStats();
+  console.log(`\n📊 Rate Limiter Stats:`);
+  console.log(` - Current delay: ${rateLimiterStats.currentDelay}ms`);
+  console.log(` - Successful calls: ${rateLimiterStats.successCount}`);
+  console.log(` - Failed calls: ${rateLimiterStats.errorCount}`);
+  console.log(` - Consecutive errors: ${rateLimiterStats.consecutiveErrors}`);
+  
+  // Add memory stats
+  const memStats = memoryManager.getMemoryStats();
+  console.log(`\n💾 Final Memory Usage:`);
+  console.log(` - Heap Used: ${memStats.heapUsed}MB`);
+  console.log(` - Heap Total: ${memStats.heapTotal}MB`);
+  console.log(` - RSS: ${memStats.rss}MB`);
         }
         
         return {

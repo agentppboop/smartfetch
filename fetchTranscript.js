@@ -1,17 +1,20 @@
-// fetchTranscript.js - ENHANCED PERFORMANCE VERSION
+// fetchTranscript.js - FIXED LRU CACHE VERSION
 
 const { YoutubeTranscript } = require('youtube-transcript');
 const axios = require('axios');
-const LRU = require('lru-cache');
+const { LRUCache } = require('lru-cache');
 require('dotenv').config();
 
 const API_KEY = process.env.YOUTUBE_API_KEY;
 
-// In-memory cache with LRU eviction
-const transcriptCache = new LRU({
-    max: 1000, // Maximum 1000 cached transcripts
-    ttl: 1000 * 60 * 60 * 2, // 2 hours TTL
-    updateAgeOnGet: true
+// ✅ FIXED: Use LRUCache instead of LRU
+const transcriptCache = new LRUCache({
+    max: 500, // Maximum 500 cached transcripts (reasonable for most apps)
+    ttl: 1000 * 60 * 60 * 24, // 24 hours TTL (YouTube content is fairly stable)
+    updateAgeOnGet: true, // Reset TTL when item is accessed
+    allowStale: false, // Don't return stale items
+    ttlResolution: 1000, // Check TTL every second
+    ttlAutopurge: true // Automatically remove expired items
 });
 
 // Circuit breaker for API failures
@@ -471,7 +474,10 @@ function getCacheStats() {
     return {
         size: transcriptCache.size,
         max: transcriptCache.max,
-        hitRate: transcriptCache.calculatedSize / (transcriptCache.calculatedSize + transcriptCache.misses) || 0
+        // ✅ FIXED: Updated for lru-cache v7+ API
+        hitRate: transcriptCache.calculatedSize / transcriptCache.max || 0,
+        totalHits: transcriptCache.size,
+        items: transcriptCache.size
     };
 }
 
