@@ -119,5 +119,71 @@
       "confidence": 0.03,
       "timestamp": 1752001485419
     }
+  },
+  {
+    "videoId": "Uwmp16aSgdk",
+    "prompt": "Analyze this YouTube video content for promotional/coupon codes and affiliate marketing.\n\nEXTRACTED DATA:\n- Codes found: []\n- Code confidence: {}\n- Percentage discounts: []\n- Flat discounts: []\n- Links: [\"http://shop.MKBHD.com\",\"https://geni.us/I4Ffm\",\"https://goo.gl/B3AWV5\"]\n- Current confidence: 0.03\n\nSAMPLE TEXT (first 800 chars):\n\"M4 Macbook Air got better and dropped in price... they are on one. MKBHD Merch: http://shop.MKBHD.com M4 MacBook Air: https://geni.us/I4Ffm Playlist of MKBHD Intro music: https://goo.gl/B3AWV5 Laptop provided by Apple for review. ~ http://twitter.com/MKBHD http://instagram.com/MKBHD http://facebook.com/MKBHD\"\n\nTASK:\n1. Determine if the extracted codes are likely valid promotional/coupon codes\n2. Assess if this appears to be sponsored/promotional content\n3. Rate confidence from 0.0 to 1.0 where:\n   - 0.8+ = Definitely promotional with valid codes\n   - 0.5-0.8 = Likely promotional, codes need verification  \n   - 0.2-0.5 = Possibly promotional, weak signals\n   - 0.0-0.2 = Not promotional content\n\nRESPOND WITH JSON ONLY:\n{\n  \"confidence\": 0.0-1.0,\n  \"reasoning\": \"brief explanation\",\n  \"validCodes\": [\"list of codes that seem valid\"],\n  \"isPromotional\": true/false,\n  \"recommendation\": \"accept/review/reject\"\n}",
+    "error": "OpenAI API error: 429 Too Many Requests - {\n    \"error\": {\n        \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.\",\n        \"type\": \"insufficient_quota\",\n        \"param\": null,\n        \"code\": \"insufficient_quota\"\n    }\n}\n",
+    "timestamp": "2025-07-10T17:15:52.026Z",
+    "retryCount": 0,
+    "metadata": {
+      "confidence": 0.03,
+      "timestamp": 1752167752024
+    }
+  },
+  {
+    "videoId": "jXJODqfaJto",
+    "prompt": "Analyze this YouTube video content for promotional/coupon codes and affiliate marketing.\n\nEXTRACTED DATA:\n- Codes found: []\n- Code confidence: {}\n- Percentage discounts: []\n- Flat discounts: []\n- Links: [\"http://shop.MKBHD.com\",\"https://goo.gl/B3AWV5\"]\n- Current confidence: 0.03\n\nSAMPLE TEXT (first 800 chars):\n\"Samsung. Apple. Google. Enemies. But also friends. MKBHD Merch: http://shop.MKBHD.com Playlist of MKBHD Intro music: https://goo.gl/B3AWV5 ~ http://twitter.com/MKBHD http://instagram.com/MKBHD http://facebook.com/MKBHD 0:00 Samsung and Apple 2:47 Apple and Google 7:17 Samsung and Google\"\n\nTASK:\n1. Determine if the extracted codes are likely valid promotional/coupon codes\n2. Assess if this appears to be sponsored/promotional content\n3. Rate confidence from 0.0 to 1.0 where:\n   - 0.8+ = Definitely promotional with valid codes\n   - 0.5-0.8 = Likely promotional, codes need verification  \n   - 0.2-0.5 = Possibly promotional, weak signals\n   - 0.0-0.2 = Not promotional content\n\nRESPOND WITH JSON ONLY:\n{\n  \"confidence\": 0.0-1.0,\n  \"reasoning\": \"brief explanation\",\n  \"validCodes\": [\"list of codes that seem valid\"],\n  \"isPromotional\": true/false,\n  \"recommendation\": \"accept/review/reject\"\n}",
+    "error": "OpenAI API error: 429 Too Many Requests - {\n    \"error\": {\n        \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.\",\n        \"type\": \"insufficient_quota\",\n        \"param\": null,\n        \"code\": \"insufficient_quota\"\n    }\n}\n",
+    "timestamp": "2025-07-10T17:15:53.026Z",
+    "retryCount": 0,
+    "metadata": {
+      "confidence": 0.03,
+      "timestamp": 1752167753025
+    }
+  },
+  {
+    "videoId": "W4Oyvgj3QnI",
+    "prompt": "Analyze this YouTube video content for promotional/coupon codes and affiliate marketing.\n\nEXTRACTED DATA:\n- Codes found: []\n- Code confidence: {}\n- Percentage discounts: []\n- Flat discounts: []\n- Links: [\"https://www.milesbeckler.com/the-plan\"]\n- Current confidence: 0.03\n\nSAMPLE TEXT (first 800 chars):\n\"This video reveals the #1 reason why people fail to make it online and then it shares the proven system for success to help you become one of the 1% of internet entrepreneurs who make it online. In this video, Miles Beckler reveals the \"ATM Strategy\" for making money online that he and his wife have used to fire their bosses and go full time online in 2010...  Since teaching this method on YouTube, the ATM strategy has now worked for thousands of students, too! It's time to get clarity on your plan and FOCUS in on doing the work.  If you want more help building out your personalized business plan, go to https://www.milesbeckler.com/the-plan for the free 1 page business plan template that requires no opt-in.\"\n\nTASK:\n1. Determine if the extracted codes are likely valid promotional/coupon codes\n2. Assess if this appears to be sponsored/promotional content\n3. Rate confidence from 0.0 to 1.0 where:\n   - 0.8+ = Definitely promotional with valid codes\n   - 0.5-0.8 = Likely promotional, codes need verification  \n   - 0.2-0.5 = Possibly promotional, weak signals\n   - 0.0-0.2 = Not promotional content\n\nRESPOND WITH JSON ONLY:\n{\n  \"confidence\": 0.0-1.0,\n  \"reasoning\": \"brief explanation\",\n  \"validCodes\": [\"list of codes that seem valid\"],\n  \"isPromotional\": true/false,\n  \"recommendation\": \"accept/review/reject\"\n}",
+    "error": "OpenAI API error: 429 Too Many Requests - {\n    \"error\": {\n        \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.\",\n        \"type\": \"insufficient_quota\",\n        \"param\": null,\n        \"code\": \"insufficient_quota\"\n    }\n}\n",
+    "timestamp": "2025-07-10T17:15:53.934Z",
+    "retryCount": 0,
+    "metadata": {
+      "confidence": 0.03,
+      "timestamp": 1752167753929
+    }
+  },
+  {
+    "videoId": "-YMFw5LgHyk",
+    "prompt": "Analyze this YouTube video content for promotional/coupon codes and affiliate marketing.\n\nEXTRACTED DATA:\n- Codes found: []\n- Code confidence: {}\n- Percentage discounts: []\n- Flat discounts: []\n- Links: [\"https://www.youtube.com/watch?v=QOWUIz9kYK8\"]\n- Current confidence: 0.03\n\nSAMPLE TEXT (first 800 chars):\n\"Learn the easy way to prepare your taxes for online creators, affiliates and eCommerce entrepreneurs!  This video reveals my simple system to prepare my taxes as an internet entrepreneur that only takes a couple hours per year! In this video I mention my \"Do You Need an LLC to Start Making Money Online\" video which you can watch here: https://www.youtube.com/watch?v=QOWUIz9kYK8  First you'll learn the differences in tax requirements for entrepreneurs vs. employees.  This will help you understand what is required from you so you can hit all of the required deadlines. Second, you'll learn my exact tax prep processes and you'll learn the tax software you can use to make this entire process of preparing your taxes easier every year. Finally, you'll learn how to grow a small team of professiona\"\n\nTASK:\n1. Determine if the extracted codes are likely valid promotional/coupon codes\n2. Assess if this appears to be sponsored/promotional content\n3. Rate confidence from 0.0 to 1.0 where:\n   - 0.8+ = Definitely promotional with valid codes\n   - 0.5-0.8 = Likely promotional, codes need verification  \n   - 0.2-0.5 = Possibly promotional, weak signals\n   - 0.0-0.2 = Not promotional content\n\nRESPOND WITH JSON ONLY:\n{\n  \"confidence\": 0.0-1.0,\n  \"reasoning\": \"brief explanation\",\n  \"validCodes\": [\"list of codes that seem valid\"],\n  \"isPromotional\": true/false,\n  \"recommendation\": \"accept/review/reject\"\n}",
+    "error": "OpenAI API error: 429 Too Many Requests - {\n    \"error\": {\n        \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.\",\n        \"type\": \"insufficient_quota\",\n        \"param\": null,\n        \"code\": \"insufficient_quota\"\n    }\n}\n",
+    "timestamp": "2025-07-10T17:15:56.685Z",
+    "retryCount": 0,
+    "metadata": {
+      "confidence": 0.03,
+      "timestamp": 1752167756684
+    }
+  },
+  {
+    "videoId": "F3jY2I1FWGE",
+    "prompt": "Analyze this YouTube video content for promotional/coupon codes and affiliate marketing.\n\nEXTRACTED DATA:\n- Codes found: []\n- Code confidence: {}\n- Percentage discounts: []\n- Flat discounts: []\n- Links: [\"https://bit.ly/3SjpSHO\",\"http://www.donut.media/\",\"http://bit.ly/PastGas\",\"https://bit.ly/TheBigThreePodcast\",\"https://www.youtube.com/donutpodcasts\"]\n- Current confidence: 0.03\n\nSAMPLE TEXT (first 800 chars):\n\"Thanks to Hankook Tire @HankookTireUSA  for sponsoring today’s video!  Click here https://bit.ly/3SjpSHO to learn more about the Dynapro MT2. Does the new Landcruiser compare to the Landcruisers before it?  Or is it just another SUV? Donut = We like cars, and we like making videos about cars. Hopefully our videos make you like cars too.  Directed by: Alex Beltran Produced by: Dani Maule Research by: Peter Nelson Lead Writer: Audrey Holden Camera Operator: Alex Skola Edited by: Caamon Brunk Hosted by: Zach Diehl, with Jimmy Hilton Subscribe for +50hp Notification bell for +100hp Get a Donut shirt ►http://www.donut.media/ We have podcasts, too! Past Gas, the #1 automotive podcast in the world ►http://bit.ly/PastGas The Big Three, our weekly car news show ► https://bit.ly/TheBigThreePodcast D\"\n\nTASK:\n1. Determine if the extracted codes are likely valid promotional/coupon codes\n2. Assess if this appears to be sponsored/promotional content\n3. Rate confidence from 0.0 to 1.0 where:\n   - 0.8+ = Definitely promotional with valid codes\n   - 0.5-0.8 = Likely promotional, codes need verification  \n   - 0.2-0.5 = Possibly promotional, weak signals\n   - 0.0-0.2 = Not promotional content\n\nRESPOND WITH JSON ONLY:\n{\n  \"confidence\": 0.0-1.0,\n  \"reasoning\": \"brief explanation\",\n  \"validCodes\": [\"list of codes that seem valid\"],\n  \"isPromotional\": true/false,\n  \"recommendation\": \"accept/review/reject\"\n}",
+    "error": "OpenAI API error: 429 Too Many Requests - {\n    \"error\": {\n        \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.\",\n        \"type\": \"insufficient_quota\",\n        \"param\": null,\n        \"code\": \"insufficient_quota\"\n    }\n}\n",
+    "timestamp": "2025-07-10T17:15:57.118Z",
+    "retryCount": 0,
+    "metadata": {
+      "confidence": 0.03,
+      "timestamp": 1752167757116
+    }
+  },
+  {
+    "videoId": "cUm2KM4GKgY",
+    "prompt": "Analyze this YouTube video content for promotional/coupon codes and affiliate marketing.\n\nEXTRACTED DATA:\n- Codes found: []\n- Code confidence: {}\n- Percentage discounts: []\n- Flat discounts: []\n- Links: [\"http://www.donut.media/\",\"http://bit.ly/PastGas\",\"https://bit.ly/TheBigThreePodcast\",\"https://www.youtube.com/donutpodcasts\"]\n- Current confidence: 0.03\n\nSAMPLE TEXT (first 800 chars):\n\"There are many fluids working to keep your car running, and today we're breaking down what they do and why your car needs em.  Donut = We like cars, and we like making videos about cars. Hopefully our videos make you like cars too.  Directed by: Phil Soulliere Produced by: Dani Maule Written by: Phil Soulliere Research by: Peter Nelson Camera Operator: Pablo Banuelos Edited by: Jacob Gehnert Hosted by: Justin Freeman with Zach Diehl Subscribe for +50hp Notification bell for +100hp Get a Donut shirt ►http://www.donut.media/ We have podcasts, too! Past Gas, the #1 automotive podcast in the world ►http://bit.ly/PastGas The Big Three, our weekly car news show ► https://bit.ly/TheBigThreePodcast Donut Podcasts YouTube  ►https://www.youtube.com/donutpodcasts Join the Donut Underground: https://w\"\n\nTASK:\n1. Determine if the extracted codes are likely valid promotional/coupon codes\n2. Assess if this appears to be sponsored/promotional content\n3. Rate confidence from 0.0 to 1.0 where:\n   - 0.8+ = Definitely promotional with valid codes\n   - 0.5-0.8 = Likely promotional, codes need verification  \n   - 0.2-0.5 = Possibly promotional, weak signals\n   - 0.0-0.2 = Not promotional content\n\nRESPOND WITH JSON ONLY:\n{\n  \"confidence\": 0.0-1.0,\n  \"reasoning\": \"brief explanation\",\n  \"validCodes\": [\"list of codes that seem valid\"],\n  \"isPromotional\": true/false,\n  \"recommendation\": \"accept/review/reject\"\n}",
+    "error": "OpenAI API error: 429 Too Many Requests - {\n    \"error\": {\n        \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.\",\n        \"type\": \"insufficient_quota\",\n        \"param\": null,\n        \"code\": \"insufficient_quota\"\n    }\n}\n",
+    "timestamp": "2025-07-10T17:15:59.489Z",
+    "retryCount": 0,
+    "metadata": {
+      "confidence": 0.03,
+      "timestamp": 1752167759487
+    }
   }
 ]
