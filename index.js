@@ -302,17 +302,15 @@ async function enhancedExtractFromTranscript(transcriptLines, videoId = 'unknown
 
 // Configuration
 const VIDEO_LINKS = [
-    'https://www.youtube.com/watch?v=Uwmp16aSgdk',
-     'https://www.youtube.com/watch?v=jXJODqfaJto',
-     'https://www.youtube.com/watch?v=W4Oyvgj3QnI',
-     'https://www.youtube.com/watch?v=-YMFw5LgHyk',
-     'https://www.youtube.com/watch?v=F3jY2I1FWGE',
-     'https://www.youtube.com/watch?v=V9XCNzoJRiU',
-     'https://www.youtube.com/watch?v=cUm2KM4GKgY'
+    'https://www.youtube.com/watch?v=_NXYpEMEZPc',
+     'https://www.youtube.com/watch?v=ga48uN7y2oQ',
+     'https://www.youtube.com/watch?v=QhFihT-pPd4',
+     'https://www.youtube.com/watch?v=8oRj4wvomzs',
+     
 ];
 
 const CHANNEL_IDS = [
- //   'UCIPPMRA040LQr5QPyJEbmXA', // MrBeast Gaming
+   // 'UCIPPMRA040LQr5QPyJEbmXA', // MrBeast Gaming
     // Add more channel IDs as needed
 ];
 
